@@ -98,7 +98,7 @@ class YoutubeDownloader
 	 * Gets informations of Youtube video
 	 *
 	 * @throws YoutubeException If Video ID is wrong or video not exists anymore or it's not viewable anyhow
-	 * 
+	 *
 	 * @return object Video's title, images, video length, download links, ...
 	 */
 	public function getVideoInfo()
@@ -141,7 +141,7 @@ class YoutubeDownloader
 			$stream_maps = explode(',', $data['url_encoded_fmt_stream_map']);
 			foreach ($stream_maps as $key => $value) {
 				parse_str($value, $stream_maps[$key]);
-				
+
 				if (isset($stream_maps[$key]['sig'])) {
 					$stream_maps[$key]['url'] .= '&signature=' . $stream_maps[$key]['sig'];
 					unset($stream_maps[$key]['sig']);
@@ -178,7 +178,7 @@ class YoutubeDownloader
 	 * Removes unsafe characters from file name
 	 * @param  string $string Path unsafe file name
 	 * @return string         Path Safe file name
-	 * 
+	 *
 	 * @todo Use .net framework's Path.GetInvalidPathChars() for a better function
 	 */
 	protected function pathSafeFilename($string)
@@ -220,15 +220,15 @@ class YoutubeDownloader
 			'connect_timeout' => 50,
 			'cookies' => array('url=http://www.youtube.com/watch?v=' . $this->videoId)
 		);
-
 		$request = $this->webClient->get($url, array(), $options);
 		$request->getCurlOptions()->set('progress', true);
 		$request->getEventDispatcher()->addListener('curl.callback.progress', $onProgress);
 		$response = $request->send();
 
 		$size = filesize($tempFilename);
-		$remained = intval($response->headers['content-length']);
+		$remained = intval((string)$response->getHeader('content-length'));
 
+        /*
 		$fp1 = fopen($file, 'a');
 		$fp2 = fopen($tempFilename, 'r');
 		while (!feof($fp2)) {
@@ -237,12 +237,17 @@ class YoutubeDownloader
 		}
 		fclose($fp2);
 		fclose($fp1);
-
-		unlink($tempFilename);
-
+            */
+        if(is_file($file))
+        {
+            unlink($file);
+        }
+        copy($tempFilename, $file);
+        unlink($tempFilename);
 		return (object) array(
 			'size' => $size,
-			'remained' => $remained
+			'remained' => $remained,
+            'file' => $file
 		);
 	}
 
@@ -250,7 +255,7 @@ class YoutubeDownloader
 	 * Downloads video format by given itag
 	 *
 	 * @throws YoutubeException If Video ID is wrong or video not exists anymore or it's not viewable anyhow
-	 * 
+	 *
 	 * @param  int  $itag   After calling {@see getVideoInfo()}, it returns various formats, each format has it's own itag. if no itag is passed, it will download the best quality of video
 	 * @param  boolean $resume If it should resume download if an uncompleted file exists or should download from begining
 	 * @return object       Downloaded chunk size and bytes that remain
@@ -351,7 +356,7 @@ class YoutubeDownloader
 				break;
 
 			$size += $download->size;
-			
+
 			// Maybe we need to refresh download link each time
 		}
 
